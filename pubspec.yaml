@@ -1,0 +1,41 @@
+name: nav
+description: WebView NAV
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.6 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.2
+  flutter_inappwebview: ^5.7.2+3
+  permission_handler: ^10.4.3
+  file_picker:
+  path_provider:
+  url_launcher:
+  flutter_downloader:
+  dio:
+  intl:
+  open_filex:
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  icons_launcher: ^2.1.1
+
+
+icons_launcher:
+  image_path: "assets/icone.png"
+  platforms:
+    android:
+      enable: true
+    ios:
+      enable: true
+
+flutter:
+  uses-material-design: true
