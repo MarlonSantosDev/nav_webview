@@ -1,8 +1,8 @@
 // ignore_for_file: avoid_print, unnecessary_this
-
 import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -36,13 +36,14 @@ class _WebViewPageState extends State<WebViewPage> {
   @override
   void initState() {
     super.initState();
-    teste();
-    /*
+    inicio();
+    
     pullToRefreshController = kIsWeb ? null : PullToRefreshController(
-      settings: PullToRefreshSettings(
-        color: Colors.blue,
+      options: PullToRefreshOptions(
+        color: Colors.red,
       ),
       onRefresh: () async {
+        printW("onRefresh");
         if (defaultTargetPlatform == TargetPlatform.android) {
           webViewController?.reload();
         } else if (defaultTargetPlatform == TargetPlatform.iOS) {
@@ -50,20 +51,22 @@ class _WebViewPageState extends State<WebViewPage> {
               urlRequest: URLRequest(url: await webViewController?.getUrl()));
         }
       },
-    );*/
+    );
   }
 
-  teste() async {
-    print("teste");
+  inicio() async {
+    printW("Inicio");
     await Permission.storage.request();
     await Permission.camera.request();
+    await Permission.audio.request();
+    await Permission.videos.request();
+    await Permission.microphone.request();
      if (Platform.isAndroid) {
       platform = TargetPlatform.android;
     } else {
       platform = TargetPlatform.iOS;
     }
   }
-
 
   Future<bool> _checkPermission() async {
     if (platform == TargetPlatform.android) {
@@ -105,41 +108,57 @@ class _WebViewPageState extends State<WebViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text("2"),
-      // ),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: const Text("1"),
+        actions: [
+          IconButton(
+            onPressed: (){
+              webViewController?.goBack();
+              //webViewController?.goForward();
+              //webViewController?.reload();
+              printW("onPressed reload");
+            },
+            icon: const Icon(Icons.replay_outlined),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Stack(
           children: [
             InAppWebView(
               key: webViewKey,
               initialUrlRequest: URLRequest(
-                url: Uri.parse(
-                  "https://staging--nav-trivento.netlify.app/login",
+                url: WebUri(
+                  "https://aluno.triventoeducacao.com.br/login",
+                  //"https://staging--nav-trivento.netlify.app/login",
                 ),
               ),
-              //initialUrlRequest: URLRequest(url:Uri.parse("https://aluno.triventoeducacao.com.br/login")),
-              //initialSettings: settings,
               initialOptions: InAppWebViewGroupOptions(
                 crossPlatform: InAppWebViewOptions(
+                  useOnLoadResource: true,
+                  preferredContentMode: UserPreferredContentMode.MOBILE,
+                  //useShouldInterceptAjaxRequest: true,
+                  //useShouldInterceptFetchRequest: true,
+                  //mediaPlaybackRequiresUserGesture: true,
                   useOnDownloadStart: true,
                   javaScriptEnabled: true,
                   javaScriptCanOpenWindowsAutomatically: true,
                   allowUniversalAccessFromFileURLs: true,
                   allowFileAccessFromFileURLs: true,
                   useShouldOverrideUrlLoading: true,
-                ),
+                )
               ),
               pullToRefreshController: pullToRefreshController,
               onWebViewCreated: (controller) {
                 webViewController = controller;
               },
               onDownloadStartRequest: (controller, url) async {
-                print("onDownloadStartRequest");
+                printW("onDownloadStartRequest");
                  _permissionReady = await _checkPermission();
                       if (_permissionReady) {
                         await _prepareSaveDir();
-                        print("Status Downloading");
+                        printW("Status Downloading");
                         try {
                           final DateTime now = DateTime.now();
                           final DateFormat formatter = DateFormat('dd-MM-yyyy-HH-mm-ss');
@@ -147,35 +166,35 @@ class _WebViewPageState extends State<WebViewPage> {
 
                           
                           String u = "${url.url}";
-                          print("Antes: |$u|");
+                          printW("Antes: |$u|");
                           u = u.replaceAll('blob:', '') ;
-                          print("Depois: |$u|");
+                          printW("Depois: |$u|");
 
                           await Dio().download(
                             u,
                             "$_localPath/$arquivo.pdf",
                             onReceiveProgress: (int a, int b) {
                               setState(() {
-                                print('Recebendo: ${b.toStringAsFixed(0)} do total : ${a.toStringAsFixed(0)}\n');
-                                print(((a / b) * 100).toStringAsFixed(0));
+                                printW('Recebendo: ${b.toStringAsFixed(0)} do total : ${a.toStringAsFixed(0)}\n');
+                                printW(((a / b) * 100).toStringAsFixed(0));
                               });
                             },
                           );
-                          print("Download Completed");
+                          printW("Download Completed");
 
-                          print("Open File");
+                          printW("Open File");
                           final String fileName = "$_localPath/$arquivo.pdf";
                           await OpenFilex.open(fileName);
-                          print("Fim\n");
-                          print("URL: ${url.url}\n");
-                          print("Arquivo: $fileName\n");
+                          printW("Fim\n");
+                          printW("URL: ${url.url}\n");
+                          printW("Arquivo: $fileName\n");
                         } catch (e) {
-                          print("Download Failed. \n$e|");
+                          printW("Download Failed. \n$e|");
                         }
                       }
               },
               onLoadStart: (controller, url) {
-                print("onLoadStart");
+                printW("onLoadStart");
                 setState(() {
                   this.url = url.toString();
                   urlController.text = this.url;
@@ -188,7 +207,7 @@ class _WebViewPageState extends State<WebViewPage> {
                         action: PermissionResponseAction.GRANT);
                   },*/
               shouldOverrideUrlLoading: (controller, navigationAction) async {
-                print("shouldOverrideUrlLoading");
+                printW("shouldOverrideUrlLoading");
                 var uri = navigationAction.request.url!;
 
                 if (![
@@ -213,7 +232,7 @@ class _WebViewPageState extends State<WebViewPage> {
                 return NavigationActionPolicy.ALLOW;
               },
               onLoadStop: (controller, url) async {
-                print("onLoadStop");
+                printW("onLoadStop");
                 pullToRefreshController?.endRefreshing();
                 setState(() {
                   this.url = url.toString();
@@ -225,7 +244,7 @@ class _WebViewPageState extends State<WebViewPage> {
                     pullToRefreshController?.endRefreshing();
                   },*/
               onProgressChanged: (controller, progress) {
-                print("onProgressChanged");
+                printW("onProgressChanged");
                 if (progress == 100) {
                   pullToRefreshController?.endRefreshing();
                 }
@@ -235,15 +254,15 @@ class _WebViewPageState extends State<WebViewPage> {
                 });
               },
               onUpdateVisitedHistory: (controller, url, androidIsReload) {
-                print("onUpdateVisitedHistory");
+                printW("onUpdateVisitedHistory");
                 setState(() {
                   this.url = url.toString();
                   urlController.text = this.url;
                 });
               },
               onConsoleMessage: (controller, consoleMessage) {
-                print("onConsoleMessage");
-                print(consoleMessage);
+                //printW("onConsoleMessage");
+                //printW(consoleMessage);
               },
             ),
             progress < 1.0
@@ -255,3 +274,7 @@ class _WebViewPageState extends State<WebViewPage> {
     );
   }
 }
+
+ void printW(text) {
+    print('\x1B[33m$text\x1B[0m');
+  }
