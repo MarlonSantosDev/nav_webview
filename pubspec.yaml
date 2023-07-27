@@ -24,10 +24,13 @@ dependencies:
   # open_filex:
   #webview_flutter: ^4.2.2
   #novos 
-  # OK flutter_webview_pro: ^3.0.1+4
-  flutter_inappwebview: ^5.4.3+7
-  web_view_ble: 0.0.4
-  permission_handler: ^10.0.0
+  flutter_webview_pro: ^3.0.1+4
+  path_provider: ^2.0.15
+  permission_handler: ^10.4.3
+  url_launcher: ^6.1.12
+  http: ^0.13.3
+
+
 
 dev_dependencies:
   flutter_test:
