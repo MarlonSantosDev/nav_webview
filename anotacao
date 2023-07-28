@@ -11,3 +11,15 @@
 
     https://fluttergems.dev/webview/
     webview_flutter_plus
+
+
+    
+Criar APK
+    para x86:
+        flutter build apk --release --target-platform=android-arm
+
+    para x64
+        flutter build apk --release --target-platform=android-arm64
+
+    para Web
+        flutter build web --release

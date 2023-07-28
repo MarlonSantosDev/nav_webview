@@ -45,10 +45,13 @@ class _WebViewPageState extends State<WebViewPage> {
       );
       printW("Download Feito");
       await OpenFilex.open("$getDownloadsDirectory()/nav_$arquivo.pdf");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Arquivo salvo: \n$url')),
+      );
     } catch (e) {
        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Arquivo salvo arquivo')),
-        );
+        SnackBar(content: Text('Erro ao salvar arquivo: \n$url')),
+      );
       printW("Erro no download");
     }
   }
@@ -113,15 +116,19 @@ class _WebViewPageState extends State<WebViewPage> {
                   })
             },
             navigationDelegate: (NavigationRequest request) {
+               if (request.url.startsWith('http')) {
+                printW('blocking navigation to $request}');
+                return NavigationDecision.navigate;
+              }
               downloadURL(request.url);
               //return NavigationDecision.navigate;
               return NavigationDecision.prevent;
             },
             onPageStarted: (String url) {
-              print('Page started loading: $url');
+              printW('Page started loading: $url');
             },
             onPageFinished: (String url) {
-              print('Page finished loading: $url');
+              printW('onPageFinished: $url');
             },
             onWebResourceError: (error) {
               printW("onWebResourceError: $error");
