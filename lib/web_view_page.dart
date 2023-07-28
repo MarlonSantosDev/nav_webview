@@ -1,10 +1,12 @@
-// ignore_for_file: use_build_context_synchronously, unused_local_variable
+// ignore_for_file: use_build_context_synchronously
 import 'dart:async';
 import 'dart:io';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_pro/webview_flutter.dart';
-import 'dart:typed_data';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 
 class WebViewPage extends StatefulWidget {
   const WebViewPage({super.key});
@@ -21,81 +23,98 @@ class _WebViewPageState extends State<WebViewPage> {
     super.initState();
     if (Platform.isAndroid) {
       WebView.platform = SurfaceAndroidWebView();
-    }
-  }
-
-
-Future<void> downloadBlob(String blobUrl) async {
-  try {
-    final response = await http.get(Uri.https(blobUrl));
-    if (response.statusCode == 200) {
-      // Content downloaded successfully.
-      Uint8List content = response.bodyBytes;
     } else {
-      // Handle error response.
-      printW('Failed to download blob. Status code: ${response.statusCode}');
+      WebView.platform = CupertinoWebView();
     }
-  } catch (e) {
-    printW('B');
-    printW('$blobUrl');
-    
   }
-}
 
+  Future downloadURL(String url) async {
+    printW("url: $url");
+    try {
+      final String agora = DateTime.now().toString();
+      String arquivo = "_$agora";
+      await Dio().download(
+        url,
+        "$getDownloadsDirectory()/nav_$arquivo.pdf",
+        onReceiveProgress: (int a, int b) {
+          setState(() {
+            printW(
+                'Recebendo: ${b.toStringAsFixed(0)} do total : ${a.toStringAsFixed(0)}\n');
+          });
+        },
+      );
+      printW("Download Feito");
+      await OpenFilex.open("$getDownloadsDirectory()/nav_$arquivo.pdf");
+    } catch (e) {
+       ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Arquivo salvo arquivo')),
+        );
+      printW("Erro no download");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async{
-        printW("onWillPop2");
-         if (await controller.canGoBack()) {
-            await controller.goBack();
-            return false;
-          } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Deseja sair da NAV ? ')),
-            );
-            return true;
-          }
-          
-          
+      onWillPop: () async {
+        if (await controller.canGoBack()) {
+          await controller.goBack();
+          return false;
+        } else {
+          bool shouldExit = await showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Deseja realmente sair da NAV?'),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Cancelar'),
+                    onPressed: () {
+                      Navigator.of(context).pop(false);
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('Sair'),
+                    onPressed: () {
+                      Navigator.of(context).pop(true);
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+          // Retorna o valor obtido do AlertDialog.
+          return shouldExit;
+        }
       },
       child: Scaffold(
-          body: Builder(builder: (BuildContext context) {
+        body: Builder(builder: (BuildContext context) {
           return WebView(
             debuggingEnabled: true,
             initialUrl: 'https://aluno.triventoeducacao.com.br',
             allowsInlineMediaPlayback: true,
             initialMediaPlaybackPolicy: AutoMediaPlaybackPolicy.always_allow,
             javascriptMode: JavascriptMode.unrestricted,
+            zoomEnabled: false,
             onWebViewCreated: (WebViewController webViewController) {
-              printW("onWebViewCreated");
               controller = webViewController;
-              //_controller.complete(webViewController);
+              printW("onWebViewCreated");
             },
             onProgress: (int progress) {
               // printW('WebView is loading (progress : $progress%)');
             },
             javascriptChannels: <JavascriptChannel>{
               JavascriptChannel(
-                name: 'Toaster',
-                onMessageReceived: (JavascriptMessage message) {
-                  // ignore: deprecated_member_use
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.message)),
-                  );
-                })
+                  name: 'Toaster',
+                  onMessageReceived: (JavascriptMessage message) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(message.message)),
+                    );
+                  })
             },
             navigationDelegate: (NavigationRequest request) {
-              // if (request.url.startsWith('https://www.youtube.com/')) {
-              //   print('blocking navigation to $request}');
-              //   return NavigationDecision.prevent;
-              // }
-              
-              downloadBlob(request.url);
-              
-              // if (!await launchUrl(Uri.parse("$request"))) {
-              //   throw Exception('Could not launch $request');
-              // }
+              downloadURL(request.url);
+              //return NavigationDecision.navigate;
               return NavigationDecision.prevent;
             },
             onPageStarted: (String url) {
@@ -104,9 +123,12 @@ Future<void> downloadBlob(String blobUrl) async {
             onPageFinished: (String url) {
               print('Page finished loading: $url');
             },
+            onWebResourceError: (error) {
+              printW("onWebResourceError: $error");
+            },
             gestureNavigationEnabled: true,
-            backgroundColor: const Color(0x00000000),
-            geolocationEnabled: true, // set geolocationEnable true or not
+            backgroundColor: const Color(0x0000293b),
+            geolocationEnabled: false,
           );
         }),
       ),
@@ -114,6 +136,8 @@ Future<void> downloadBlob(String blobUrl) async {
   }
 }
 
- void printW(text) {
-  print('\x1B[33m$text\x1B[0m');
+void printW(text) {
+  if (kDebugMode) {
+    print('\x1B[33m$text\x1B[0m');
+  }
 }

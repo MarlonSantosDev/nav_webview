@@ -12,23 +12,14 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.2
-  # flutter_inappwebview: 6.0.0-beta.24+1
-  #flutter_inappwebview: ^5.7.2+3
-  # permission_handler: ^10.4.3
-  # file_picker:
-  # path_provider:
-  # url_launcher:
-  # flutter_downloader:
-  # dio:
-  # intl:
-  # open_filex:
-  #webview_flutter: ^4.2.2
-  #novos 
   flutter_webview_pro: ^3.0.1+4
   path_provider: ^2.0.15
   permission_handler: ^10.4.3
   url_launcher: ^6.1.12
-  http: ^0.13.3
+  dio: ^5.3.0
+  open_filex: ^4.3.2
+  download: any
+
 
 
 
