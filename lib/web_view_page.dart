@@ -113,7 +113,7 @@ class _WebViewPageState extends State<WebViewPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(message.message)),
                     );
-                  })
+                  },)
             },
             navigationDelegate: (NavigationRequest request) {
                if (request.url.startsWith('http')) {

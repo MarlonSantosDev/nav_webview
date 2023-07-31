@@ -23,3 +23,8 @@ Criar APK
 
     para Web
         flutter build web --release
+
+
+applicationId "br.com.triventoeducacao.aluno"
+
+https://aluno.triventoeducacao.com.br/
