@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webview_pro/webview_flutter.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class WebViewPage extends StatefulWidget {
   const WebViewPage({super.key});
@@ -28,32 +29,67 @@ class _WebViewPageState extends State<WebViewPage> {
     }
   }
 
-  Future downloadURL(String url) async {
-    printW("url: $url");
-    try {
-      final String agora = DateTime.now().toString();
-      String arquivo = "_$agora";
-      await Dio().download(
-        url,
-        "$getDownloadsDirectory()/nav_$arquivo.pdf",
-        onReceiveProgress: (int a, int b) {
-          setState(() {
-            printW(
-                'Recebendo: ${b.toStringAsFixed(0)} do total : ${a.toStringAsFixed(0)}\n');
-          });
-        },
-      );
-      printW("Download Feito");
-      await OpenFilex.open("$getDownloadsDirectory()/nav_$arquivo.pdf");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Arquivo salvo: \n$url')),
-      );
-    } catch (e) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao salvar arquivo: \n$url')),
-      );
-      printW("Erro no download");
+  late String _localPath;
+  late bool _permissionReady;
+
+  
+  Future<void> _prepareSaveDir() async {
+    _localPath = (await _findLocalPath())!;
+
+    final savedDir = Directory(_localPath);
+    bool hasExisted = await savedDir.exists();
+    if (!hasExisted) {
+      savedDir.create();
     }
+  }
+
+  Future<String?> _findLocalPath() async {
+    //if (platform == TargetPlatform.android) {
+    // return "/sdcard/Download";
+    //} else {
+    var directory = await getApplicationDocumentsDirectory();
+    return '${directory.path}${Platform.pathSeparator}Download';
+    //}
+  }
+
+  
+  Future<bool> _checkPermission() async {
+      final status = await Permission.storage.status;
+      if (status != PermissionStatus.granted) {
+        final result = await Permission.storage.request();
+        if (result == PermissionStatus.granted) {
+          return true;
+        }
+      } else {
+        return true;
+      }
+      return true;
+  }
+
+  Future downloadURL(String url) async {
+    _permissionReady = await _checkPermission();
+    if (_permissionReady) {
+      await _prepareSaveDir();
+      printW("Status Downloading");
+      try {
+        final String agora = DateTime.now().toString();
+        String arquivo = "arquivo_${agora}";
+
+        await Dio().download(url,"$_localPath/$arquivo.docx");
+        printW("Download Completed");
+
+        printW("Open File ${"$_localPath/$arquivo.docx"}");
+        final String fileName = "$_localPath/$arquivo.docx";
+        await OpenFilex.open(fileName);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Center(
+            child: Text('Erro ao salvar arquivo'),
+          )),
+        );
+        printW("Erro download");
+      }
+  }
   }
 
   @override
@@ -94,7 +130,8 @@ class _WebViewPageState extends State<WebViewPage> {
         body: Builder(builder: (BuildContext context) {
           return WebView(
             debuggingEnabled: true,
-            initialUrl: 'https://aluno.triventoeducacao.com.br',
+            initialUrl: 'https://preview-pr-169--nav-trivento.netlify.app/login',
+            //initialUrl: 'https://aluno.triventoeducacao.com.br',
             allowsInlineMediaPlayback: true,
             initialMediaPlaybackPolicy: AutoMediaPlaybackPolicy.always_allow,
             javascriptMode: JavascriptMode.unrestricted,
@@ -116,10 +153,11 @@ class _WebViewPageState extends State<WebViewPage> {
                   },)
             },
             navigationDelegate: (NavigationRequest request) {
+              /*
                if (request.url.startsWith('http')) {
                 printW('blocking navigation to $request}');
                 return NavigationDecision.navigate;
-              }
+              }*/
               downloadURL(request.url);
               //return NavigationDecision.navigate;
               return NavigationDecision.prevent;
