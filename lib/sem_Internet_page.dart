@@ -1,13 +1,9 @@
+// ignore_for_file: file_names
 import 'package:flutter/material.dart';
 
-class SemInternetpage extends StatefulWidget {
-  const SemInternetpage({super.key});
+class SemInternerPage extends StatelessWidget {
+  const SemInternerPage({super.key});
 
-  @override
-  State<SemInternetpage> createState() => _SemInternetpageState();
-}
-
-class _SemInternetpageState extends State<SemInternetpage> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
@@ -15,7 +11,7 @@ class _SemInternetpageState extends State<SemInternetpage> {
         child: Text(
           'Sem acesso a internet!',
           style: TextStyle(
-            fontSize: 25,
+            fontSize: 26,
           ),
         ),
       ),

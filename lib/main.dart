@@ -1,10 +1,19 @@
 import 'package:connection_notifier/connection_notifier.dart';
 import 'package:flutter/material.dart';
-import 'package:nav/SemInternetPage.dart';
+import 'package:flutter/services.dart';
+import 'package:nav/sem_Internet_page.dart';
 import 'package:nav/web_view_page.dart';
 
 main() async {
-  runApp(const MyApp());
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
+  runApp(
+    const MyApp(),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -22,7 +31,7 @@ class MyApp extends StatelessWidget {
       ),
       home: const ConnectionNotifierToggler(
         connected: WebViewPage(),
-        disconnected: SemInternetpage(),
+        disconnected: SemInternerPage(),
       ),
     );
   }

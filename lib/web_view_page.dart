@@ -1,38 +1,44 @@
 // ignore_for_file: use_build_context_synchronously
-import 'dart:async';
+
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_pro/webview_flutter.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:dio/dio.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class WebViewPage extends StatefulWidget {
   const WebViewPage({super.key});
-
   @override
   State<WebViewPage> createState() => _WebViewPageState();
 }
 
 class _WebViewPageState extends State<WebViewPage> {
   late final WebViewController controller;
+  //late InAppWebViewController controller;
+  late String _localPath;
+  late bool _permissionReady;
+  bool load = true;
 
   @override
   void initState() {
     super.initState();
     if (Platform.isAndroid) {
-      WebView.platform = SurfaceAndroidWebView();
-    } else {
-      WebView.platform = CupertinoWebView();
+      //WebView.platform = SurfaceAndroidWebView();
+    } else if (Platform.isIOS) {
+      //  WebView.platform = CupertinoWebView();
     }
   }
 
-  late String _localPath;
-  late bool _permissionReady;
+  @override
+  void dispose() {
+    super.dispose();
+    //controller;
+  }
 
-  
   Future<void> _prepareSaveDir() async {
     _localPath = (await _findLocalPath())!;
 
@@ -44,138 +50,201 @@ class _WebViewPageState extends State<WebViewPage> {
   }
 
   Future<String?> _findLocalPath() async {
-    //if (platform == TargetPlatform.android) {
-    // return "/sdcard/Download";
-    //} else {
     var directory = await getApplicationDocumentsDirectory();
     return '${directory.path}${Platform.pathSeparator}Download';
-    //}
   }
 
-  
   Future<bool> _checkPermission() async {
-      final status = await Permission.storage.status;
-      if (status != PermissionStatus.granted) {
-        final result = await Permission.storage.request();
-        if (result == PermissionStatus.granted) {
-          return true;
-        }
-      } else {
+    final status = await Permission.storage.status;
+    if (status != PermissionStatus.granted) {
+      final result = await Permission.storage.request();
+      if (result == PermissionStatus.granted) {
         return true;
       }
+    } else {
       return true;
+    }
+    return false;
   }
+  
+String getExtensionFromContentType({required String contentType}) {
 
-  Future downloadURL(String url) async {
+  if (contentType.contains('image/png')) {
+    return 'png';
+  } else if (contentType.contains('image/jpeg')) {
+    return 'jpg';
+  } else if (contentType.contains('image/gif')) {
+    return 'gif';
+  } else if (contentType.contains('application/pdf')) {
+    return 'pdf';
+  } else if (contentType.contains('application/msword') || contentType.contains('application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+    return 'docx';
+  } else if (contentType.contains('application/vnd.ms-excel') || contentType.contains('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+    return 'xlsx';
+  } else if (contentType.contains('text/plain')) {
+    return 'txt';
+  } else {
+    return 'unknown';
+  }
+}
+
+
+  Future<void> downloadURL(String url) async {
     _permissionReady = await _checkPermission();
     if (_permissionReady) {
       await _prepareSaveDir();
       printW("Status Downloading");
       try {
-        final String agora = DateTime.now().toString();
-        String arquivo = "arquivo_${agora}";
-
-        await Dio().download(url,"$_localPath/$arquivo.docx");
+        final response = await Dio().get(
+          url,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        final agora = DateTime.now().toString().replaceAll(" ", "_").replaceAll(":", "-").split(".")[0];
+        final contentType = response.headers['content-type'];
+        final extension = getExtensionFromContentType(contentType: contentType.toString());
+        final arquivo = "Arquivo_$agora.$extension";
+        final file = File("$_localPath/$arquivo");
+        await file.writeAsBytes(response.data);
         printW("Download Completed");
 
-        printW("Open File ${"$_localPath/$arquivo.docx"}");
-        final String fileName = "$_localPath/$arquivo.docx";
+        final fileName = "$_localPath/$arquivo";
+        print(fileName);
         await OpenFilex.open(fileName);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Center(
-            child: Text('Erro ao salvar arquivo'),
-          )),
-        );
+        if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Center(
+                child: Text('Erro ao salvar arquivo'),
+              ),
+            ),
+          );
+        }
         printW("Erro download");
       }
-  }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Center(
+            child: Text('Permissão negada para salvar arquivos'),
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (await controller.canGoBack()) {
-          await controller.goBack();
-          return false;
-        } else {
-          bool shouldExit = await showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Deseja realmente sair da NAV?'),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Cancelar'),
-                    onPressed: () {
-                      Navigator.of(context).pop(false);
+    return SafeArea(
+      child: WillPopScope(
+        onWillPop: () async {
+          if (await controller.canGoBack()) {
+            await controller.goBack();
+            return false;
+          } else {
+            bool shouldExit = await showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Deseja realmente sair da NAV?'),
+                  actions: <Widget>[
+                    TextButton(
+                      child: const Text('Cancelar'),
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      },
+                    ),
+                    TextButton(
+                      child: const Text('Sair'),
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+            return shouldExit;
+          }
+        },
+        child: Stack(
+          children: [
+            Scaffold(
+              body:
+                  WebView(
+                debuggingEnabled: true,
+                initialUrl: 'https://preview-pr-169--nav-trivento.netlify.app/login',
+                //initialUrl: 'https://aluno.triventoeducacao.com.br',
+                allowsInlineMediaPlayback: true,
+                initialMediaPlaybackPolicy: AutoMediaPlaybackPolicy.always_allow,
+                javascriptMode: JavascriptMode.unrestricted,
+                zoomEnabled: false,
+                onWebViewCreated: (WebViewController webViewController) {
+                  controller = webViewController;
+                  printW("onWebViewCreated");
+                },
+                onProgress: (int progress) {
+                  setState(() {
+                    if (progress < 98 ) {
+                      load = true;
+                    } else {
+                      load = false;
+                    }  
+                  });
+                  printW('WebView is loading (progress : $progress%)');
+                },
+                javascriptChannels: <JavascriptChannel>{
+                  JavascriptChannel(
+                    name: 'Toaster',
+                    onMessageReceived: (JavascriptMessage message) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(message.message)),
+                      );
                     },
                   ),
-                  TextButton(
-                    child: const Text('Sair'),
-                    onPressed: () {
-                      Navigator.of(context).pop(true);
-                    },
+                },
+                navigationDelegate: (NavigationRequest request) {
+                  if (request.url.contains('s3.sa-east-1.amazonaws.com')) {
+                    printW("Link ${request.url}");
+                    downloadURL(request.url);
+                    return NavigationDecision.prevent;
+                  }
+                  if (request.url.startsWith("https://api.whatsapp.com/") || request.url.startsWith("whatsapp://send/")) {
+                    printW("Whatsapp | ${request.url}");
+                    launchUrl(Uri.parse(request.url), mode: LaunchMode.externalApplication);
+                    //OpenFilex.open(request.url);                  
+                    return NavigationDecision.prevent;
+                  }
+                  printW("ir ${request.url}");
+                  return NavigationDecision.navigate;
+                },
+                onPageStarted: (String url) {
+                  printW('Page started loading: $url');
+                },
+                onPageFinished: (String url) {
+                  printW('onPageFinished: $url');
+                },
+                onWebResourceError: (error) {
+                  printW("onWebResourceError: $error");
+                },
+                gestureNavigationEnabled: true,
+                backgroundColor: const Color(0x0000293b),
+                geolocationEnabled: false,
+              ),
+            ),
+            Visibility(
+              visible: load,
+              child: const Padding(
+                padding: EdgeInsets.only(left: 10, right: 10),
+                child: Center(
+                  child: LinearProgressIndicator(
+                    color:  Color.fromARGB(255, 1, 43, 63),
                   ),
-                ],
-              );
-            },
-          );
-          // Retorna o valor obtido do AlertDialog.
-          return shouldExit;
-        }
-      },
-      child: Scaffold(
-        body: Builder(builder: (BuildContext context) {
-          return WebView(
-            debuggingEnabled: true,
-            initialUrl: 'https://preview-pr-169--nav-trivento.netlify.app/login',
-            //initialUrl: 'https://aluno.triventoeducacao.com.br',
-            allowsInlineMediaPlayback: true,
-            initialMediaPlaybackPolicy: AutoMediaPlaybackPolicy.always_allow,
-            javascriptMode: JavascriptMode.unrestricted,
-            zoomEnabled: false,
-            onWebViewCreated: (WebViewController webViewController) {
-              controller = webViewController;
-              printW("onWebViewCreated");
-            },
-            onProgress: (int progress) {
-              // printW('WebView is loading (progress : $progress%)');
-            },
-            javascriptChannels: <JavascriptChannel>{
-              JavascriptChannel(
-                  name: 'Toaster',
-                  onMessageReceived: (JavascriptMessage message) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(message.message)),
-                    );
-                  },)
-            },
-            navigationDelegate: (NavigationRequest request) {
-              /*
-               if (request.url.startsWith('http')) {
-                printW('blocking navigation to $request}');
-                return NavigationDecision.navigate;
-              }*/
-              downloadURL(request.url);
-              //return NavigationDecision.navigate;
-              return NavigationDecision.prevent;
-            },
-            onPageStarted: (String url) {
-              printW('Page started loading: $url');
-            },
-            onPageFinished: (String url) {
-              printW('onPageFinished: $url');
-            },
-            onWebResourceError: (error) {
-              printW("onWebResourceError: $error");
-            },
-            gestureNavigationEnabled: true,
-            backgroundColor: const Color(0x0000293b),
-            geolocationEnabled: false,
-          );
-        }),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
