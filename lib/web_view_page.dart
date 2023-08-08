@@ -1,10 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
-
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_pro/webview_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:dio/dio.dart';
@@ -55,6 +53,7 @@ class _WebViewPageState extends State<WebViewPage> {
   }
 
   Future<bool> _checkPermission() async {
+    /*
     final status = await Permission.storage.status;
     if (status != PermissionStatus.granted) {
       final result = await Permission.storage.request();
@@ -65,6 +64,8 @@ class _WebViewPageState extends State<WebViewPage> {
       return true;
     }
     return false;
+    */
+    return true;
   }
   
 String getExtensionFromContentType({required String contentType}) {
@@ -108,7 +109,9 @@ String getExtensionFromContentType({required String contentType}) {
         printW("Download Completed");
 
         final fileName = "$_localPath/$arquivo";
-        print(fileName);
+        if (kDebugMode) {
+          print(fileName);
+        }
         await OpenFilex.open(fileName);
       } catch (e) {
         if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
@@ -172,13 +175,16 @@ String getExtensionFromContentType({required String contentType}) {
             Scaffold(
               body:
                   WebView(
-                debuggingEnabled: true,
+                debuggingEnabled: false,
                 initialUrl: 'https://preview-pr-169--nav-trivento.netlify.app/login',
                 //initialUrl: 'https://aluno.triventoeducacao.com.br',
                 allowsInlineMediaPlayback: true,
                 initialMediaPlaybackPolicy: AutoMediaPlaybackPolicy.always_allow,
                 javascriptMode: JavascriptMode.unrestricted,
                 zoomEnabled: false,
+                gestureNavigationEnabled: true,
+                backgroundColor: const Color(0x0000293b),
+                geolocationEnabled: false,
                 onWebViewCreated: (WebViewController webViewController) {
                   controller = webViewController;
                   printW("onWebViewCreated");
@@ -227,9 +233,6 @@ String getExtensionFromContentType({required String contentType}) {
                 onWebResourceError: (error) {
                   printW("onWebResourceError: $error");
                 },
-                gestureNavigationEnabled: true,
-                backgroundColor: const Color(0x0000293b),
-                geolocationEnabled: false,
               ),
             ),
             Visibility(
