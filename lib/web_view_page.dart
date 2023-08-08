@@ -19,7 +19,7 @@ class _WebViewPageState extends State<WebViewPage> {
   //late InAppWebViewController controller;
   late String _localPath;
   late bool _permissionReady;
-  bool load = true;
+  bool load = true, loadDownload = false;
 
   @override
   void initState() {
@@ -93,6 +93,9 @@ String getExtensionFromContentType({required String contentType}) {
   Future<void> downloadURL(String url) async {
     _permissionReady = await _checkPermission();
     if (_permissionReady) {
+      setState(() {
+        loadDownload = true;
+      });
       await _prepareSaveDir();
       printW("Status Downloading");
       try {
@@ -124,6 +127,10 @@ String getExtensionFromContentType({required String contentType}) {
           );
         }
         printW("Erro download");
+      } finally{
+        setState(() {
+          loadDownload = false;
+        });
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -193,8 +200,10 @@ String getExtensionFromContentType({required String contentType}) {
                   setState(() {
                     if (progress < 98 ) {
                       load = true;
+                      loadDownload = false;
                     } else {
                       load = false;
+                      loadDownload = false;
                     }  
                   });
                   printW('WebView is loading (progress : $progress%)');
@@ -210,7 +219,7 @@ String getExtensionFromContentType({required String contentType}) {
                   ),
                 },
                 navigationDelegate: (NavigationRequest request) {
-                  if (request.url.contains('s3.sa-east-1.amazonaws.com')) {
+                  if (request.url.contains('amazonaws')) {
                     printW("Link ${request.url}");
                     downloadURL(request.url);
                     return NavigationDecision.prevent;
@@ -233,6 +242,17 @@ String getExtensionFromContentType({required String contentType}) {
                 onWebResourceError: (error) {
                   printW("onWebResourceError: $error");
                 },
+              ),
+            ),
+            Visibility(
+              visible: loadDownload,
+              child: Container(
+                color: Colors.transparent,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color:  Colors.white,
+                  ),
+                ),
               ),
             ),
             Visibility(
