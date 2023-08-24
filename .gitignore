@@ -9,7 +9,7 @@
 .history
 .svn/
 migrate_working_dir/
-anotacao
+anotacao.txt
 
 # IntelliJ related
 *.iml
